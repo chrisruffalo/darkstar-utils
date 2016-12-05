@@ -29,6 +29,7 @@ function help {
 function container {
 	printf "Building darkstar ${1} container... "
 	docker build --rm -t "$2" "${DIR}/${1}" &>/dev/null
+	#docker build --rm -t "$2" "${DIR}/${1}"
 	if [ $? == 0 ]; then
 		printf "[SUCCESS]\n"
 	else
@@ -53,9 +54,10 @@ function containers {
 # function for build
 # param $1 should be additional options
 function build {
-	printf "Building darkstar... "
+	printf "Building darkstar binaries... "
 	WD=`pwd`
-	docker run --rm -ti $1 -v ${WD}:/darkstar/out${MOUNT_SUFFIX} ${TAG_BUILDER} > /dev/null 2>&1
+	docker run --rm -ti $1 -v ${WD}:/darkstar/out${MOUNT_SUFFIX} ${TAG_BUILDER} &>/dev/null
+	#docker run --rm -ti $1 -v ${WD}:/darkstar/out${MOUNT_SUFFIX} ${TAG_BUILDER}
 	if [ $? == 0 ]; then
 		printf "[SUCCESS]\n"
 	else
@@ -76,13 +78,23 @@ if [ "build" == "$OPTION" ]; then
 	# get git dir from params
 	GIT_DIR=$2
 
-	# use 
+	# remove old darkstar/git dir from base if it exists
+	if [ -d "${DIR}/docker-base/darkstar" ]; then
+		rm -rf "${DIR}/docker-base/darkstar"
+	fi
+
+	# decide what to do with existing git or what to do if it doesn't exist
 	if [ -z "$GIT_DIR" ]; then
-		printf "No value provided for the Git directory where the darkstar project is cloned. Using origin/stable from GitHub.\n"
+		printf "No value provided for the Git directory where the darkstar project is cloned. Using origin/master from GitHub.\n"
 		GIT_DIR=""
+		# checkout git into docker-base directory
+		git clone http://github.com/DarkstarProject/darkstar.git/ "${DIR}/docker-base/darkstar"
 	elif [ ! -d "$GIT_DIR" ]; then
 		printf "No directory '$GIT_DIR' found. This should be the location where the darkstar project is cloned from Git.\n"
 		exit 1
+	else
+		# copy git into darkstar base directory
+		cp -r $GIT_DIR "${DIR}/docker-base/darkstar"
 	fi
 
 	# build base and build containers
@@ -113,6 +125,12 @@ if [ "build" == "$OPTION" ]; then
 
 	# build containers
 	containers
+
+	# cleanup
+	rm -f $DIR/docker-game/dsgame
+	rm -f $DIR/docker-connect/dsconnect
+	rm -f $DIR/docker-search/dssearch
+	rm -rf "${DIR}/docker-base/darkstar"
 
 	exit
 fi
