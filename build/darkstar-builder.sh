@@ -93,6 +93,8 @@ if [ "build" == "$OPTION" ]; then
 		printf "No directory '$GIT_DIR' found. This should be the location where the darkstar project is cloned from Git.\n"
 		exit 1
 	else
+		# log
+		printf "Using '${GIT_DIR}' as source base, copying to Docker image working directory.\n"
 		# copy git into darkstar base directory
 		cp -r $GIT_DIR "${DIR}/docker-base/darkstar"
 	fi
